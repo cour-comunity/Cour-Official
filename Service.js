@@ -1,111 +1,150 @@
 //services
-class JSServices {
- constructor(Manager) {
-   this.GlobalServiceManager = Manager;
-   this.ServicesTemplate = {
-     'EventsService': {
-        'Service': class EventsService {
-          constructor(ServiceManager) {
-            this.ServiceManager = ServiceManager;
-            console.log('In developement');
-          }
-        },
-        'Dependencys': [],
+class JSServicesManager {
+  constructor(Manager) {
+    this.GlobalServiceManager = Manager;
+    this.Import('MessagingService'); //default service for this class
+  }
+  get MessagingServiceInitialization() {
+    class Initialization {
+      constructor(Manager) {
+        this.ServiceManager = Manager;
+        this.Global = {
+          'SubscribedFunctions': [],
+        };
       }
-   };
- }
- GetService(Service, Data) {
-   //setup data
-   if ('RecursionDepth' in Data === false) {
-     Data.RecursionDepth = 0;
-   }
-   //logic
-   if (String(Service) in this.GlobalServiceManager) {
-     return this.ImportedService[Service];
-   } else if (String(Service) in this.ServicesTemplate) {
-      //set up the data
-      const ServicePath = this.ServicesTemplate[Service];
       
-      //get the dependencys first
-      if (ServicePath.Dependencys.length > 0) {
-        ServicePath.Dependencys.forEach(DependentService => {
-          //make it so if the dependency is a js one then it will skip the recursive from the service manager to skip recursive steps for proformance
-          if (DependentService.startsWith("HTML/")) {
-            this.GlobalServiceManager.Import(DependentService.replace("HTML/", ""), 'HTML');
-          } else if (DependentService.startsWith("JS/")) {
-            this.GetService(DependentService.replace("JS/", ""), Data.RecusionDepth + 1);
-          } else {
-            this.GlobalServiceManager.Import(DependentService);
+      
+      FindChannel(Path) {
+        
+        let CurrentPath = this.Global;
+        Path.split('.').forEach(Key => {
+          if (!(Key in CurrenPath)) {
+            CurrentPath[Key] = {
+              'SubscribedFunctions': [] //sets up the default stuff for that channel
+            };
           }
+          CurrentPath = CurrentPath[Key];
         });
-      }
-      //initialize the service maby add ability to shorten it so its not stored twice
-      this.GlobalServiceManager[String(Service)] = new ServicePath.Service(this);
-   } else if ('Orgin-Conflicts' in Data === false) {
-     
-   } else {
-     //that service doesnt exsist throw debug
-   }
- }
-}
-
-class HTMLServices {
- constructor(Manager) {
-   this.GlobalServiceManager = Manager;
-   this.ServicesTemplate = {
-     'UILoader': {
-        'HTMLTags': {
-          'STARTER-UI-LOADER': class StarterUI extends HTMLElement {
-            constructor() { //Right as element is made
-              super();
-              //customElements.define('my-greeting', MyGreeting);
-            }
-            connectedCallback() { //when elements in the body
-             
-            }
-            disconnectedCallback() {
-              
-            }
-            static get observedAttributes() {
-              
-            }
-            attributeChangedCallback(name, oldValue, newValue) {
-              
-            }
-          }
+        return CurrentPath;
+      } //called to return the channel and make it if it doesnt exsist
+      
+      
+      SubscribeToChannel(Path, Callback) {
+        CurrentPath = this.FindChannel(Path);
+        CurrentPath.SubscribedFunctions.push(Callback);
+      } //adds a function to run when the channel gets called
+      
+      
+      BroadcastToChannel(Path, Data) {
+        CurrentPath = this.FindChannel(Path);
+        CurrentPath.SubscribedFunctions.forEach(eventFunction => {
+          eventFunction(Data);
+        });
+      } //runs every function of the channel
+      
+    } //your method can vary but you need to return the class for the service at the end. 
+    //if your service needs any dependencys then use this.import if your service is inside this class otherwise use this.globalservicemanager.from.(ParentService).import(ServiceName)
+    return new Initialization(this.GlobalServiceManager);
+  } //all child services needs a get method with the ke word "Initilization" at the end
+  Import(Service) {
+    //defined how to apply the service
+    if (!(String(Service) in this.GlobalServiceManager)) {
+      this.GlobalServiceManager[String(Service)] = this[String(Service) + 'Initialization'];
+    }
+  }
+  
+} //this service is built to help with javascript developement and can be used to help html elements too
+class HTMLServicesManager {
+  constructor(Manager) {
+    this.GlobalServiceManager = Manager;
+  }
+  InitilizeElements(Tags) {
+    Array.from(Object.keys(Tags)).forEach(CustomTag => {
+      customElements.define(CustomTag, Tags[CustomTag]);
+    });
+    //document.body.getElementsByTagName('yourTag'); 
+  }
+  
+  get StarterUIServiceInitilization() {
+    const CustomTags = {
+      'starter-ui': class Initialization extends HTMLElement {
+        constructor() {
+          super();
         }
-     }
-   };
- }
- GetService(Service, Data) {
-   //get variable data
-   if ('RecursionDepth' in Data === false) {
-     Data.RecursionDepth = 0;
-   }
-   
-   if (String(Service) in this.GlobalServiceManager) {
-     return this.ImportedService[Service];
-   } else if (String(Service) in this.ServicesTemplate) {
-      //set up the data
-      const ServicePath = this.ServicesTemplate[Service];
-   } else if ('Orgin-Conflicts' in Data === false) {
-     
-   } else {
-     //error debug
-   }
-   
- }
-}
+        connectedCallback() { //when elements in the body
+          let UI = localStorage.getItem(String(this.dataset.uiStoragePath));
+          if (!UI || !(this.querySelector('#' + String(UI)))) {
+            localStorage.setItem(String(this.dataset.uiStoragePath), String(this.dataset.fallbackUi));
+            UI = String(this.dataset.fallbackUi);
+          }
+          UI = document.getElementById(UI);
+          if (UI) {
+            let ImportedUI = document.importNode(UI.content, true);
+            document.getElementById('PageContent').appendChild(ImportedUI);
+          }
+          if (typeof starterUIInitilization === 'function') {
+            starterUIInitilization();
+          } else if (typeof StarterUIInitilization === 'function') {
+            
+          }
+          this.remove();
+        }
+        disconnectedCallback() {
+        }
+        static get observedAttributes() {
+          return [];
+        }
+        attributeChangedCallback(Name, OldValue, NewValue) {
+          
+        }
+      }, //id recomend only using one of these
+      
+    }; //make sure the tags are named propperly
+    
+    this.InitilizeElements(CustomTags); //initilize the tags
+    
+    class InitilizationClass {
+      constructor(Manager) {
+        this.Manager = Manager;
+      }
+    } //a class the user can call in javascript to manage the tags
+    
+    
+    //setup dependencys
+    this.GlobalServiceManager.From.JSServices.Import('MessagingService');
+    
+    return new InitilizationClass(this.GlobalServiceManager);
+  } //this is what you put templates for ui inside of to load the propper one later
+  Import(Service) {
+    if (!(String(Service) in this.GlobalServiceManager)) {
+      this.GlobalServiceManager[Service] = this[String(Service) + 'Initilization'];
+    }
+  }
+} //this service is for custom elements to be defined and when to define them.
 
-
-class Services {
+class ServicesManager {
   constructor() {
-
-    this.JSServicManager = new JSServices(this);
-    this.HTMLServiceManager = new HTMLServices(this);
+    
+    class From {
+      constructor(Manager) {
+        this.GlobalServicesManager = Manager;
+        //JSS and HTML are the default services
+        this.JSServices = new JSServicesManager(Manager);
+        this.HTMLServices = new HTMLServicesManager(Manager);
+      }
+    } //This is to add proper syntax and let people store more Services. the syntax to get a service from a service path is servicemanager.from.ParentService.import(childService)
+    
+    this.From = new From(this); //initialize the storage of parent services
+    this.ServicePaths = {
+      'JSService': JSServicesManager,
+      'HTMLServices': HTMLServicesManager
+    };
   }
-  Import(Service, Strict) {
-    //check if its in html service or jss service
+  Import(Service) {
+    
+    if (typeof window !== 'undefined' && window[Service] && typeof window[Service] === 'function') {
+      
+    }
   }
+  
 }
-const ServiceManager = new Services();

@@ -2,28 +2,40 @@
 <html>
   <head>
     <!-- Search Ranking and other information -->
-    <meta charset="UTF-8">
+    <meta charset="utf-8">
     <meta name="description" content="COUR or Comunity of Universal Research is under developement, but we plan to allow the ability to give free education and research on all subjects to keep all information up to date.">
     <meta name="keywords" content="education, research, learning, courses, free teaching">
     <link rel="canonical" href="https://cour.run.place/">
     <meta name="robots" content="index, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <script defer src="HomeScript.js"></script>
+    
+    
+    <!-- Scripts-->
     <script defer src="Service.js"></script>
+    <script defer src="HomeScript.js"></script>
+    
+    <!--style sheets -->
+    <style>
+      
+    </style>
+    
     
     
     
   </head>
   
-  <body>
+  <body id='PageContent'>
     <main id='MainContent'>
       <!-- Have this here for under developement -->
       <h1>Sorry but this site is still under development and we currently are still making it</h1>
+      <p>if you can't see the message below that means the current version isnt working or is not up to date.</p>
     </main>
     
     <!-- for ui -->
-    <template id='StarterUI'>
-      
-    </template>
+    <starter-ui data-ui-storage-path='UIMode' data-fallback-ui='Sushi'>
+      <template id='Sushi'>
+        <h>If you can see this message that means your current version is up to date and working</h>
+      </template>
+    </starter-ui>
   </body>
 </html>
