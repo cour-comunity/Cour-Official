@@ -18,7 +18,7 @@ class JSServicesManager {
         
         let CurrentPath = this.Global;
         Path.split('.').forEach(Key => {
-          if (!(Key in CurrenPath)) {
+          if (!(Key in CurrentPath)) {
             CurrentPath[Key] = {
               'SubscribedFunctions': [] //sets up the default stuff for that channel
             };
