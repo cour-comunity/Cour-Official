@@ -4,15 +4,14 @@ class JSServicesManager {
     this.GlobalServiceManager = Manager;
     this.Import('MessagingService'); //default service for this class
   }
-  get MessagingServiceInitialization() {
-    class Initialization {
+  get MessagingServiceInitilization() {
+    class Initilization {
       constructor(Manager) {
         this.ServiceManager = Manager;
         this.Global = {
           'SubscribedFunctions': [],
         };
       }
-      
       
       FindChannel(Path) {
         
@@ -25,18 +24,25 @@ class JSServicesManager {
           }
           CurrentPath = CurrentPath[Key];
         });
+        
         return CurrentPath;
       } //called to return the channel and make it if it doesnt exsist
       
       
       SubscribeToChannel(Path, Callback) {
-        CurrentPath = this.FindChannel(Path);
+        
+        let CurrentPath = this.FindChannel(Path);
+        
+        
+        
         CurrentPath.SubscribedFunctions.push(Callback);
+        
       } //adds a function to run when the channel gets called
       
       
       BroadcastToChannel(Path, Data) {
-        CurrentPath = this.FindChannel(Path);
+        
+        let CurrentPath = this.FindChannel(Path);
         CurrentPath.SubscribedFunctions.forEach(eventFunction => {
           eventFunction(Data);
         });
@@ -44,12 +50,111 @@ class JSServicesManager {
       
     } //your method can vary but you need to return the class for the service at the end. 
     //if your service needs any dependencys then use this.import if your service is inside this class otherwise use this.globalservicemanager.from.(ParentService).import(ServiceName)
-    return new Initialization(this.GlobalServiceManager);
+    return new Initilization(this.GlobalServiceManager);
   } //all child services needs a get method with the ke word "Initilization" at the end
+  
+  get UIManagerInitilization() {
+    class Initilization {
+      constructor(Manager) {
+        this.ServiceManager = Manager;
+        this.UICache = {
+          
+        };
+      }
+      CacheForElement(Element) {
+        
+      }
+    }
+  } //handles some functions with ui
+  
+  get AnimationManagerInitilization() {
+    class Initilization {
+      constructor(Manager) {
+        this.ServiceManager = Manager;
+        this.AnimationQue = {
+          /* Format
+          AnimationName: { Just the custom name can be auto assinged if not defined
+          
+            Object //Required for a html element if animating an object
+            
+            Wait, or waituntil //if theres no object then we will wait until
+            time //time for wait
+            condition //function of the condition for waituntil
+            Keyframe { //the keyframes name NEEDS to be the style were animating through style
+              StartValue //starting INTIGER OR FLOAT for the value if not defined will auto become what it should be
+              EndValue //ending INTIGER OR FLOAT for the value
+              Prefix //if your animating something life style.left include end prefix like PX or %
+              Curve //curve for this animation
+              Regression //explanitory
+              
+              StartedAt // timestamp that it started this, this should start as null
+              duration //how long in ms should the animation last
+              
+              DoAfter //function to run when animation ends
+              
+              Pause //is the animation paused
+              PausedAt //when the animation was paused should start as null
+              after //
+              
+            } 
+            
+          }
+          */
+        };
+        
+        this.Regressions = {
+          
+        };
+      } //check this to find the format of animation que
+      MasterFrame(Frame) { //I will add heavy ammount of comments for ths for those snooping the code if they feel like they will use this service
+      
+        //loop through each name
+        Array.from(Object.keys(this.AnimationQue)).forEach(AnimationName => {
+          if ('Object' in this.AnimationQue[AnimationName]) { //if were animating an object
+            Array.from(Object.keys(this.AnimationQue[AnimationName])).forEach(StyleToAnimate => {
+              
+              if (StyleToAnimate !== 'Object') { //make sure not to animate the object
+                let KeyframeData = this.AnimationQue[AnimationName][StyleToAnimate]; //this is to simplify the code
+                if (!KeyframeData.StartedAt) {
+                  KeyframeData.StartedAt = Frame;
+                }
+                if (!KeyframeData.StartValue) {
+                  KeyframeData.StartValue = parseInt(Element.style[StyleToAnimate], 10);
+                }
+                let Completion = (Frame - KeyframeData.StartedAt) / KeyframeData.Duration;
+                if (Completion < 1) {
+                  //apply regression
+                  if ('Regression' in KeyframeData) {
+                    Completion = this.Regressions[KeyframeData.Regression[Regression]](KeyframeData.Regression.Data);
+                  }
+                  //calculate new value
+                  let NewValue = ((KeyframeData.EndValue - KeyframeData.StartValue) * Completion) + KeyframeData.StartValue;
+                } else {
+                  //do after here
+                }
+              }
+            });
+          } else if ('WaitUntil' in this.AnimationQue[AnimationName] || 'Wait' in this.AnimationQue[AnimationName]) { //if were waiting 
+            
+          } else { //if nothing is in here to animate
+            delete this.AnimationQue[AnimationName];
+          }
+        });
+        
+        if (Object.keys(AnimationQue).length > 0) {
+          //this.Playing = requestAnimationFrame(this.MasterFrame.bind(this));
+        }
+      } //this is the Central hub for managing animations and made easy.
+    }
+  } //work on this
+  
+  
+  
+  
   Import(Service) {
     //defined how to apply the service
     if (!(String(Service) in this.GlobalServiceManager)) {
-      this.GlobalServiceManager[String(Service)] = this[String(Service) + 'Initialization'];
+      this.GlobalServiceManager[String(Service)] = this[String(Service) + 'Initilization'];
     }
   }
   
@@ -80,13 +185,15 @@ class HTMLServicesManager {
           UI = document.getElementById(UI);
           if (UI) {
             let ImportedUI = document.importNode(UI.content, true);
-            document.getElementById('PageContent').appendChild(ImportedUI);
+            let ImportedUIDestination = document.body;
+            ImportedUIDestination.appendChild(ImportedUI);
           }
           if (typeof starterUIInitilization === 'function') {
             starterUIInitilization();
           } else if (typeof StarterUIInitilization === 'function') {
-            
+            //add later
           }
+          
           this.remove();
         }
         disconnectedCallback() {
@@ -98,7 +205,35 @@ class HTMLServicesManager {
           
         }
       }, //id recomend only using one of these
-      
+      'starter-ui-unpacked': class StarterUIUnpacked extends HTMLElement {
+        constructor() {
+          super();
+        }
+        connectedCallback() {
+          if (this.dataset.replaceElement) {
+            let ElementToReplace = document.getElementById(this.dataset.replaceElement);
+            while (ElementToReplace.firstChild) {
+              ElementToReplace.removeChild(ElementToReplace.firstChild);
+            }
+            while (this.firstChild) {
+              ElementToReplace.appendChild(this.firstChild);
+            }
+            this.remove();
+          }
+        }
+      },
+      'starter-ui-unpacked-style': class StarterUIUnpackedStyleSheet extends HTMLElement {
+        constructor() {
+          super();
+        }
+        connectedCallback() {
+          while (this.firstChild) {
+            document.head.appendChild(this.firstChild);
+          }
+          this.remove();
+        }
+        
+      }
     }; //make sure the tags are named propperly
     
     this.InitilizeElements(CustomTags); //initilize the tags
@@ -141,10 +276,12 @@ class ServicesManager {
     };
   }
   Import(Service) {
-    
-    if (typeof window !== 'undefined' && window[Service] && typeof window[Service] === 'function') {
-      
+    if (typeof Service === 'string' && globalThis[Service]) {
+      this.From[Service] = globalThis[Service];
     }
+
   }
   
 }
+
+

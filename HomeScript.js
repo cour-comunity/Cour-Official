@@ -4,9 +4,4 @@ ServiceManager = new ServicesManager();
 ServiceManager.From.HTMLServices.Import('StarterUIService');
 
 window.onload = function() {
-  ServiceManager.MessagingService.SubscribeToChannel('Test', function() {
-    document.getElementById('MainContent').style.background = 'blue';
-  });
-  ServiceManager.MessagingService.BroadcastToChannel('Test');
-  
 };

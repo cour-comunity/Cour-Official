@@ -1,6 +1,6 @@
 <!DOCTYPE html>
-<html>
-  <head lang='en'>
+<html lang='en'>
+  <head>
     <!-- Search Ranking and other information -->
     <meta charset="utf-8">
     <meta name="description" content="COUR or Comunity of Universal Research is under developement, but we plan to allow the ability to give free education and research on all subjects to keep all information up to date.">
@@ -8,17 +8,29 @@
     <link rel="canonical" href="https://cour.run.place/">
     <meta name="robots" content="index, follow">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-    <!--page information-->
-    <title>COUR</title>
     
+    <!-- Page details -->
+    <title>Cour</title>
     
     <!-- Scripts-->
     <script defer src="Service.js"></script>
     <script defer src="HomeScript.js"></script>
     
     <!--style sheets -->
-    <style>    
+    <style>
+      #MainBanner {
+        border: 1px solid gray;
+        top: 0%;
+        left: -2%;
+        width: 104%;
+        aspect-ratio: 1 / 0.1;
+        position: absolute;
+        box-shadow: 5px 5px 10px gray;
+        
+      }
+      body {
+        overflow: hidden;
+      }
     </style>
     
     
@@ -29,15 +41,28 @@
   <body id='PageContent'>
     
     <main id='MainContent'>
-      <!-- Have this here for under developement -->
-      <h1>Sorry but this site is still under development and we currently are still making it</h1>
-      <p>if you can't see the message below that means the current version isnt working or is not up to date.</p>
+      <!-- put this here to please to google crawlers -->
+      <header>
+        <h1>Welcom to Comunity of Universal Research; and education and reasearch company.</h1>
+        <description>If you can see this that means javascript is probbibly not supported on your browser</description>
+      </header>
+      
     </main>
     
     <!-- for ui -->
     <starter-ui data-ui-storage-path='UIMode' data-fallback-ui='Sushi'>
       <template id='Sushi'>
-        <h>If you can see this message that means your current version is up to date and working</h>
+        <starter-ui-unpacked data-replace-element='MainContent'>
+          <header>
+            <div id='MainBanner'>
+              <h1 style='margin-left: 10%;'>Welcome</h1>
+            </div>
+          </header>
+        </starter-ui-unpacked>
+        <starter-ui-unpacked-style>
+          <style>
+          </style>
+        </starter-ui-unpacked-style>
       </template>
     </starter-ui>
   </body>
