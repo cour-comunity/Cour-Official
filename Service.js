@@ -1,3 +1,7 @@
+
+
+
+
 //services
 class JSServicesManager {
   constructor(Manager) {
@@ -73,11 +77,12 @@ class JSServicesManager {
     class Initilization {
       constructor(Manager) {
         this.ServiceManager = Manager;
+        this.LastFrame = null;
         this.AnimationQue = {
           /* Format
           name: { Just the custom name can be auto assinged if not defined
           
-            Object //Required for a html element if animating an object
+            element //Required for a html element if animating an object
             
             Wait, or waituntil //if theres no object then we will wait until
             time //time for wait
@@ -118,31 +123,55 @@ class JSServicesManager {
         this.ActivationCurve = {
           
         };
+        window.requestAnimationFrame(this.MasterFrame.bind(this));
       } //check this to find the format of animation que
-      MasterFrame(Frame) { 
+      MasterFrame(Frame) {
+        
         Array.from(Object.keys(this.AnimationQue)).forEach(AnimationName => {
           let Animation = this.AnimationQue[AnimationName];
           
-          if ('Element' in Animation) {
+          if ('Element' in Animation && !('GlobalPause' in Animation)) {
+            
             let ElementToAnimate = Animation.Element;
             
             Array.from(Object.keys(Animation)).forEach(KeyframeName => {
-              if (KeyframeName !== 'Element') {
-                let Keyframe = Animation[KeyframeName];
+              let Keyframe = Animation[KeyframeName];
+              if (KeyframeName !== 'Element' && !('Pause' in Keyframe)) {
                 if (!(Keyframe.StartedAt)) {
                   Keyframe.StartedAt = Frame;
                 }
                 if (!(Keyframe.StartValue)) {
                   Keyframe.StartValue = parseInt(ElementToAnimate.style[KeyframeName], 10);
                 }
+                if ('DataRegression' in Keyframe) {
+                  let NewData = Keyframe.DataRegression({
+                    'Frame': Frame,
+                    'GlobalServiceManager': this.ServiceManager,
+                    'Element': ElementToAnimate,
+                    'StartedAt': Keyframe.StartedAt,
+                    'Duration': Keyframe.Duration,
+                    'DeltaFrames': Frame - (this.LastFrame || 0)
+                  });
+                  Array.from(Object.keys(NewData)).forEach(ValueName => {
+                  
+                    if (NewData[String(ValueName)].Mode === 'Replace') {
+                      
+                      Keyframe[String(ValueName)] = NewData[String(ValueName)].Value;
+                    }
+                  });
+                }
+                
                 
                 let TrueCompletion = (Frame - Keyframe.StartedAt) / Keyframe.Duration;
                 let Completion = TrueCompletion; //true complotion is before regression
+                
                 //apply regression
                 if ('Regression' in Keyframe) {
                   Completion = this.Regressions[Keyframe.Regression.Type](Completion, Keyframe.Regression.Variables);
                 }
-                let NewValue = Completion * ((Keyframe.EndValue - Keyframe.StartValue) / Keyframe.Duration);
+                
+                let NewValue = Keyframe.StartValue + (Completion * Keyframe.Duration) * ((Keyframe.EndValue - Keyframe.StartValue) / Keyframe.Duration);
+                
                 if ('ActivationCurve' in Keyframe) {
                   NewValue = this.ActivationCurve[Keyframe.ActivationCurve.Type](NewValue, Keyframe.ActivationCurve.Data);
                 }
@@ -152,21 +181,38 @@ class JSServicesManager {
                 if (!(Keyframe.Suffix)) {
                   Keyframe.Suffix = '';
                 }
+                
                 ElementToAnimate.style[KeyframeName] = String(NewValue) + Keyframe.Suffix;
                 if (TrueCompletion >= 1) {
                   ElementToAnimate.style[KeyframeName] = String(Keyframe.EndValue) + Keyframe.Suffix;
                   //end animation
                   if ('DoAfter' in Keyframe && typeof Keyframe.DoAfter === 'function') {
-                    Keyframe.DoAfter();
+                    let AfterEventData = Keyframe.DoAfter({'Element': Animation.Element});
+                    if ('NewElement' in AfterEventData) {
+                      Animation.Element = AfterEventData.NewElement;
+                    }
+                    if ('Repeat' in AfterEventData && AfterEventData.Repeat) {
+                       Keyframe.StartedAt = Frame;
+                    }
                   } else if ('DoAfter' in Keyframe && typeof Keyframe.DoAfter === 'string') {
                     this.ServiceManager.MessagingService.BroadcastToChannel(Keyframe.DoAfter);
+                    
+                  } else {
+                    delete this[AnimationName][KeyframeName];
                   }
-                  delete this[AnimationName][KeyframeName];
+                  
                 }
+                
+              } else if ('Pause' in Keyframe && !(Keyframe.Pause.FramePaused)) {
+                Keyframe.PausedAt = Frame;
+              } else if ('Pause' in Keyframe && !(Keyframe.Pause.Paused)) {
+                Keyframe.StartedAt = Keyframe.StartedAt + (Frame - Keyframe.Pause.FramePaused);
+                delete Keyframe.Pause;
               }
             });
             if (Object.keys(Animation).length - 1 < 1) {
               delete this.AnimationQue[AnimationName];
+              
             }
           } else if ('Wait' in Animation) {
             if (!(Animation.StartedAt)) {
@@ -187,10 +233,25 @@ class JSServicesManager {
                 Animation.DoAfter();
               }
             }
+          } else if ('GlobalPause' in Animation) {
+            if (!Animation.GlobalPause.PausedAtFrame) {
+              Animation.GlobalPause.PausedAtFrame = Frame;
+            } else if (Animation.GlobalPause.Paused === false) {
+              const TimePausedFor = Frame - Animation.GlobalPause.PausedAtFrame;
+              Array.from(Object.keys(Animation)).forEach(KeyframeName => {
+                if (KeyframeName !== 'Element') {
+                  Animation[String(KeyframeName)].StartedAt = Animation[String(KeyframeName)].StartedAt + TimePausedFor;
+                }
+              });
+              
+              delete Animation.GlobalPause;
+            }
           } else {
             delete this.AnimationQue[AnimationName];
           }
         });
+        this.LastFrame = Frame;
+        window.requestAnimationFrame(this.MasterFrame.bind(this));
         
       } //this is the Central hub for managing animations and made easy.
     }
@@ -209,10 +270,26 @@ class JSServicesManager {
             this.LeftClick = false;
             this.RightClick = false;
             this.MiddleClick = false;
+            this.HaltingAnimations = {
+              'OnHover': null,
+            };
             document.addEventListener('mousedown', this.MouseDown.bind(this));
             document.addEventListener('mouseup', this.MouseUp.bind(this));
             document.addEventListener('mousemove', this.MouseMove.bind(this));
+            document.addEventListener('wheel', this.Wheel.bind(this));
           }
+          
+          Wheel(Event) {
+            event.preventDefault();
+            let Target = Event.target;
+            while (Target.dataset.passEventToParent) {
+              if (Target.dataset.passEventToParent.toLowerCase() === 'true') {
+                Target = Target.parentNode;
+              }
+            }
+            
+          }
+          
           
           
           MouseDown(Event) {
@@ -249,16 +326,50 @@ class JSServicesManager {
           }
           MouseMove(Event) {
             let Target = Event.target;
-            while (Target.dataset.passEventToParent) {
-              if (Target.dataset.passEventToParent.toLowerCase() === 'true') {
-                Target = Target.parentNode;
+            let PauseOnHoverTargetAnimation = null;
+            if (Target) {
+              while (Target.dataset.passEventToParent) {
+                if (Target.dataset.passEventToParent.toLowerCase() === 'true') {
+                  Target = Target.parentNode;
+                }
+              }
+              PauseOnHoverTargetAnimation = Target.dataset.haltAninimationOnmouseHover;
+            }
+            if (this.ParentManager.ServiceManager.AnimationManager) {
+              const AnimationManager = this.ParentManager.ServiceManager.AnimationManager;
+              if (PauseOnHoverTargetAnimation !== this.HaltingAnimations.OnHover) {
+                if (this.HaltingAnimations.OnHover) {
+                  AnimationManager.AnimationQue[String(this.HaltingAnimations.OnHover)].GlobalPause.Paused = false;
+                  this.HaltingAnimations.OnHover = null;
+                }
+                if (PauseOnHoverTargetAnimation) {
+                  AnimationManager.AnimationQue[String(PauseOnHoverTargetAnimation)].GlobalPause = {'Paused': true};
+                  this.HaltingAnimations.OnHover = PauseOnHoverTargetAnimation;
+                }
               }
             }
+            this.X = Event.clientX;
+            this.Y = Event.clientY;
             
           }
           
         }
         this.Mouse = new Mouse(this);
+        class Keyboard {
+          constructor(Manager) {
+            this.ParentManager = Manager;
+            this.KeysLogged = ''; //just remove the first key in here and add the last key to log keys
+            this.SaveKeyDepth = 1; //defines how many keys to log
+            document.addEventListener('keydown', this.KeyDown.bind(this));
+            document.addEventListener('keyup', this.KeyUp.bind(this));
+          }
+          KeyDown(Event) {
+            
+          }
+          KeyUp(Event) {
+            
+          }
+        }
         
       }
     }
@@ -270,9 +381,11 @@ class JSServicesManager {
   
   Import(Service) {
     //defined how to apply the service
+    
     if (!(String(Service) in this.GlobalServiceManager)) {
       this.GlobalServiceManager[String(Service)] = this[String(Service) + 'Initilization'];
     }
+    
   }
   
 } //this service is built to help with javascript developement and can be used to help html elements too
@@ -440,6 +553,112 @@ class HTMLServicesManager {
     
   }
   
+  get PackAlphaInitilization() {
+    class InitilizationClass {
+      constructor(Manager) {
+        this.ServiceManager = Manager;
+        
+      }
+    }
+    var GlobalServiceManagerPath = this.GlobalServiceManager;
+    this.GlobalServiceManager.From.JSServices.Import('AnimationManager');
+    var InitilizedClass = new InitilizationClass(this.GlobalServiceManager);
+    
+    
+    
+    const CustomTags = {
+      'ui-pack-alpha-conveyor': class Conveyor extends HTMLElement {
+        constructor() {
+          super();
+          this.style.whiteSpace = 'nowrap';
+          
+          
+        }
+        connectedCallback() {
+          let TempContainer = document.createElement('Container');
+          TempContainer.id = 'Conveyor' + this.id + 'TemperaryItemHolder';
+          this.parentNode.appendChild(TempContainer);
+          for (let i = 0; i < this.children.length; i++) {
+            this.children[i].style.position = 'absolute';
+            this.children[i].style.bottom = '50%'; //just a test for now
+            TempContainer.appendChild(this.children[i]);
+            
+          }
+          for (let i = 0; i <= Math.ceil(this.getBoundingClientRect().width / this.getBoundingClientRect().height); i++) {
+            
+            let BeltHolder = document.createElement("div");
+            
+            //BeltHolder.style.position = 'relative';
+            BeltHolder.style.height = '100%';
+            BeltHolder.style.border = '1px solid black';
+            BeltHolder.style.width = String(this.getBoundingClientRect().height * 1.5) + 'px';
+            BeltHolder.style.position = 'relative';
+            BeltHolder.id = this.id + 'BeltHolder' + String(i);
+            BeltHolder.setAttribute('data-halt-aninimation-onmouse-hover', this.id + 'ConveyorAnimationAlphaPack');
+            this.appendChild(BeltHolder);
+            BeltHolder.style.background = 'grey';
+            BeltHolder.style.display = 'inline-block';
+            BeltHolder.style.transformStyle = 'preserve-3d';
+            BeltHolder.style.transform = 'rotateX(45deg)';
+            BeltHolder.style.perspectiveOrigin = 'center';
+          }
+          
+          GlobalServiceManagerPath.AnimationManager.AnimationQue[this.id + 'ConveyorAnimationAlphaPack'] = {
+            'Element': this.children[0],
+            'width': {
+              'StartValue': null,
+              'EndValue': 0,
+              'Duration': 1000,
+              'Suffix': 'px',
+              'DataRegression': function Regress(Data) {
+                const MousePath = Data.GlobalServiceManager.UserActions;
+                const ElementRect = Data.Element.getBoundingClientRect();
+                const SizeConstant = 2.75; //for tweaking
+                if (MousePath && Math.abs(MousePath.Mouse.Y - (ElementRect.top + (0.5 * ElementRect.height))) < ElementRect.height * SizeConstant) {
+                  const DistanceRegressionValue = Math.abs(MousePath.Mouse.Y - (ElementRect.top + (0.5 * ElementRect.height))) / (ElementRect.height * SizeConstant);
+                  const FramesAdded = ((1 - DistanceRegressionValue) * (Data.DeltaFrames || 1));
+                  return {
+                    'StartedAt': {
+                      'Mode': 'Replace',
+                      'Value':  Data.StartedAt + FramesAdded
+                    },
+                  };
+                } else {
+                  return {};
+                }
+              },
+              'DoAfter': function After(Data) {
+                let Conveyor = Data.Element.parentNode;
+                Conveyor.insertBefore(Conveyor.children[0], null); 
+                Conveyor.lastElementChild.style.width = Conveyor.children[0].style.width;
+                
+                return {
+                  'Repeat': true,
+                  'NewElement': Conveyor.children[0],
+                  
+                };
+                
+              }
+              
+            }
+          }; //working here
+          
+        }
+      }
+    };
+    
+    this.InitilizeElements(CustomTags);
+    return InitilizedClass;
+  }
+  
+  get FPSInitilization() {
+    class Initilization {
+      constructor(Manager) {
+        this.ServiceManager = Manager;
+      }
+    }
+  }
+  
   
   Import(Service) {
     if (!(String(Service) in this.GlobalServiceManager)) {
@@ -447,16 +666,28 @@ class HTMLServicesManager {
     }
   }
 } //this service is for custom elements to be defined and when to define them.
+var GlobalExternalServices = {
+  
+};
+
 
 class ServicesManager {
-  constructor() {
+  constructor(Data) {
     
     class From {
-      constructor(Manager) {
+      constructor(Manager, InitilizationData) {
         this.GlobalServicesManager = Manager;
         //JSS and HTML are the default services
-        this.JSServices = new JSServicesManager(Manager);
-        this.HTMLServices = new HTMLServicesManager(Manager);
+        if (!InitilizationData || !('Import Default' in InitilizationData) || (InitilizationData['Import Default'] === true)) {
+          this.JSServices = new JSServicesManager(Manager);
+          this.HTMLServices = new HTMLServicesManager(Manager);
+        }
+        if (InitilizationData && ('Include Services' in InitilizationData)) {
+          Array.from(Object.keys(InitilizationData['Include Services'])).forEach(CustomService => {
+            this[CustomService] = InitilizationData['Include Services'][CustomService];
+            this[CustomService].Manager = this.GlobalServiceManager;
+          });
+        }
       }
     } //This is to add proper syntax and let people store more Services. the syntax to get a service from a service path is servicemanager.from.ParentService.import(childService)
     
@@ -469,8 +700,9 @@ class ServicesManager {
   Import(Service) {
     if (typeof Service === 'string' && globalThis[Service]) {
       this.From[Service] = globalThis[Service];
+      globalThis[Service].ServiceManager = this;
     } else if (typeof Service === 'string' && GlobalExternalServices[Service]) {
-      this.From[Service] = new GlobalExternalServices[Service]();
+      this.From[Service] = new GlobalExternalServices[Service](this);
     }
   }
 }

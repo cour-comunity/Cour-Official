@@ -14,13 +14,17 @@
     
     <!-- Scripts-->
     <script defer src="Service.js"></script>
+    
+    <script defer src="PeerToPeerService.js"></script>
+    <script defer src='UniversalConsoleService.js'></script>
     <script defer src="HomeScript.js"></script>
     
     <!--style sheets -->
+
     <style>
       #MainBanner {
         width: 100%;
-        aspect-ratio: 1 / 0.05;
+        min-height: 6vh;
         position: relative;
         box-shadow: 0px 5px 5px gray;
         display: flex;
@@ -53,28 +57,41 @@
         background: inherit;
       }
       
+      #SuggestionUI {
+        width: 100%;
+        top: 0%;
+        left: 0%;
+        height: 10%;
+        min-height: 10%;
+        position: absolute;
+      }
+      
       body {
         margin: 0;
         overflow: hidden;
       }
       a {
         text-decoration: none;
+        color: black;
+        font-size: 2rem;
       }
     </style>
     
     
     
     
+    
   </head>
   
+  
   <body id='PageContent'>
-    
+    <label id='test'></label>
     <main id='MainContent'>
       <!-- put this here to please to google crawlers -->
       <header>
         <nav id='MainBanner'>
           <a href="https://cour.run.place" target='_self' title='Go to the official site.'>
-            <h1>Cour</h1>
+            cour
           </a>
           
         </nav>
@@ -94,12 +111,70 @@
               <ui-import-service id='MainBanner'></ui-import-service>
             </nav>
           </header>
+          <div id='Explore'>
+            <div id='Explore'>
+              <button id='Plate'>
+                
+              </button>
+            </div>
+          </div>
+          <div id='SuggestionUI'>
+            <ui-pack-alpha-conveyor id='SuggestionConveyor'>
+              
+            </ui-pack-alpha-conveyor>
+          </div>
+          
         </starter-ui-unpacked>
+        
         <starter-ui-unpacked-style>
           <style>
             #SideMenu {
               background: #75584A;
               /*#75584A for dark mode maby, #B07E68 for light?*/
+            }
+            #SuggestionUI {
+              height: 15%;
+              top: 50%;
+              position: absolute;
+              
+              
+            }
+            #SuggestionConveyor {
+              height: 100%;
+              position: absolute;
+              width: 150%;
+              left: -25%;
+              perspective: 200px;
+              
+              
+            }
+            #SuggestionConveyor > div::after {
+              content: "";
+              width: 3%;
+              right: 100%;
+              height: 100%;
+              top: 0%;
+              position: absolute;
+              background-image: linear-gradient(to left, #2E2E2E, #D9D9D9);
+            }
+            #SuggestionConveyor > div::before { /* remove for low end devices */
+              content: "";
+              width: 3%;
+              right: 0%;
+              height: 100%;
+              top: 0%;
+              position: absolute;
+              background-image: linear-gradient(to left, #D9D9D9, #2E2E2E);
+            }
+            #Plate {
+              background: black;
+              position: relative;
+              left: 50%;
+              top: 75%;
+              height: 25%;
+              width: 25%;
+              clip-path: circle(50%);
+              
             }
           </style>
         </starter-ui-unpacked-style>
@@ -107,7 +182,8 @@
           <script>
             class StarterUIInitilizationScript {
               constructor(Manager) {
-                this.ServiceManager = Manager
+                this.ServiceManager = Manager;
+                Manager.From.HTMLServices.Import('PackAlpha');
               }
             }
           </script>
@@ -118,7 +194,7 @@
       <template id='ImportStorageMainBanner'>
         <div id='MainBanner'>
           <a href="https://cour.run.place" target='_self' title='Go to the official site.'>
-            <h1>Cour</h1>
+            Cour
           </a>
           <side-menu id='SideMenu' data-pinned='False'>
             <div>

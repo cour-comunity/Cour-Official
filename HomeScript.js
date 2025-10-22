@@ -6,6 +6,10 @@ ServiceManager.From.HTMLServices.Import('StarterUIService');
 ServiceManager.From.HTMLServices.Import('UIImportService');
 ServiceManager.From.HTMLServices.Import('SideMenuService');
 ServiceManager.From.JSServices.Import('UserActions');
+ServiceManager.Import('UniversalConsole');
+ServiceManager.From.UniversalConsole.Import('OnlineChat');
+
+
 
 
 window.onload = function() {
